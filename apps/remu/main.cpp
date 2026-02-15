@@ -1,5 +1,8 @@
 #include <remu/common/log.hpp>
 #include <remu/runtime/arguments.hpp>
+#include <remu/platform/virt.hpp>
+#include <remu/loaders/image_loader.hpp>
+#include <remu/runtime/runner.hpp>
 
 #include <cstdlib>
 #include <cstring>
@@ -109,10 +112,7 @@ int main(int argc, char** argv) {
     log_info(std::string("Kernel: ") + args.kernel_path);
     log_info("Memory bytes: " + std::to_string(args.mem_size_bytes));
 
-    // Next steps (later):
-    // remu::platform::VirtMachine machine(args.mem_size_bytes);
-    // rvemu::runtime::Sim sim(machine, opts);
-    // sim.run();
-
+    remu::runtime::run(args);
+    
     return 0;
 }

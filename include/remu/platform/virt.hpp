@@ -1,0 +1,45 @@
+#pragma once
+
+#include <cstdint>
+#include <remu/mem/bus.hpp>
+#include <remu/mem/memory.hpp>
+
+// #include <remu/devices/uart_ns16550.hpp>
+// #include <remu/devices/clint.hpp>
+// #include <remu/devices/plic_stub.hpp>
+
+namespace remu::platform {
+
+class VirtMachine {
+   public:
+    explicit VirtMachine(std::uint32_t mem_size_bytes);
+
+    // Access bus for CPU + loaders
+    remu::mem::Bus& bus() { return bus_; }
+    const remu::mem::Bus& bus() const { return bus_; }
+
+    // Convenience accessors (optional)
+    std::uint32_t ram_base() const { return ram_base_; }
+    std::uint32_t ram_size() const { return mem_size_bytes_; }
+
+    // Optional: tick devices (timers/interrupts). Call this from Sim loop.
+    void tick(std::uint64_t cycles);
+
+   private:
+    void map_devices_();
+
+   private:
+    std::uint32_t ram_base_ = 0x8000'0000;
+    std::uint32_t mem_size_bytes_ = 0;
+
+    // Owned components
+    remu::mem::Memory ram_;
+    remu::mem::Bus bus_;
+
+    // Minimal compulsory devices for Linux bring-up
+    // remu::devices::UartNs16550 uart_;
+    // remu::devices::Clint clint_;
+    // remu::devices::PlicStub plic_;
+};
+
+}  // namespace remu::platform
