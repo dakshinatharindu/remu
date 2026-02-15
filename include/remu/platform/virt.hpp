@@ -18,6 +18,10 @@ class VirtMachine {
     remu::mem::Bus& bus() { return bus_; }
     const remu::mem::Bus& bus() const { return bus_; }
 
+    // Optional: direct RAM accessors (for loaders/debug)
+    remu::mem::Memory& ram() { return ram_; }
+    const remu::mem::Memory& ram() const { return ram_; }
+
     // Convenience accessors (optional)
     std::uint32_t ram_base() const { return ram_base_; }
     std::uint32_t ram_size() const { return mem_size_bytes_; }
