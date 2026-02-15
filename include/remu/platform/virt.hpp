@@ -4,7 +4,7 @@
 #include <remu/mem/bus.hpp>
 #include <remu/mem/memory.hpp>
 
-// #include <remu/devices/uart_ns16550.hpp>
+#include <remu/devices/uart.hpp>
 // #include <remu/devices/clint.hpp>
 // #include <remu/devices/plic_stub.hpp>
 
@@ -41,7 +41,7 @@ class VirtMachine {
     remu::mem::Bus bus_;
 
     // Minimal compulsory devices for Linux bring-up
-    // remu::devices::UartNs16550 uart_;
+    remu::devices::UartNs16550 uart_;
     // remu::devices::Clint clint_;
     // remu::devices::PlicStub plic_;
 };
