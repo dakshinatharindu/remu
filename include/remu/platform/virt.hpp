@@ -7,7 +7,7 @@
 
 #include <remu/devices/uart.hpp>
 #include <remu/devices/clint.hpp>
-// #include <remu/devices/plic_stub.hpp>
+#include <remu/devices/plic.hpp>
 
 namespace remu::platform {
 
@@ -51,7 +51,7 @@ class VirtMachine {
     // Minimal compulsory devices for Linux bring-up
     remu::devices::UartNs16550 uart_;
     remu::devices::Clint clint_;
-    // remu::devices::PlicStub plic_;
+    remu::devices::Plic plic_;
 };
 
 }  // namespace remu::platform

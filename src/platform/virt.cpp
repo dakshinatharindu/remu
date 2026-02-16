@@ -23,6 +23,7 @@ static constexpr std::uint32_t MIP_MSIP =
     (1u << 3);  // Machine Software Interrupt Pending
 static constexpr std::uint32_t MIP_MTIP =
     (1u << 7);  // Machine Timer Interrupt Pending
+static constexpr std::uint32_t MIP_MEIP = (1u << 11); // Machine External Interrupt Pending
 }  // namespace memmap
 
 VirtMachine::VirtMachine(std::uint32_t mem_size_bytes)
@@ -33,7 +34,8 @@ VirtMachine::VirtMachine(std::uint32_t mem_size_bytes)
       dtb_(dtb_base_, memmap::DTB_SIZE),  // 2 MiB DTB memory
       bus_(),
       uart_(),
-      clint_() {
+      clint_(),
+      plic_() {
     map_devices_();
 }
 
@@ -49,7 +51,7 @@ void VirtMachine::map_devices_() {
     bus_.map_mmio(memmap::CLINT_BASE, memmap::CLINT_SIZE, clint_);
 
     // // 4) PLIC (stub for now)
-    // bus_.map_mmio(memmap::PLIC_BASE, memmap::PLIC_SIZE, plic_);
+    bus_.map_mmio(memmap::PLIC_BASE, memmap::PLIC_SIZE, plic_);
 }
 
 void VirtMachine::tick(std::uint64_t cycles, remu::cpu::Cpu& cpu) {
@@ -67,6 +69,10 @@ void VirtMachine::tick(std::uint64_t cycles, remu::cpu::Cpu& cpu) {
         mip |= memmap::MIP_MTIP;
     else
         mip &= ~memmap::MIP_MTIP;
+
+    // PLIC → MEIP
+    if (plic_.has_pending_for_hart0()) mip |= memmap::MIP_MEIP;
+    else                               mip &= ~memmap::MIP_MEIP;
 
     cpu.csr.set_mip(mip);
 }
