@@ -32,6 +32,7 @@ public:
     std::uint32_t mie() const { return mie_; }
     std::uint32_t mip() const { return mip_; }
     std::uint32_t mscratch() const { return mscratch_; }
+    std::uint32_t mhartid() const { return mhartid_; }
 
     void set_mepc(std::uint32_t v) { mepc_ = v; }
     void set_mcause(std::uint32_t v) { mcause_ = v; }
@@ -39,6 +40,7 @@ public:
     void set_mip(std::uint32_t v) { mip_ = v; }
     void set_mie(std::uint32_t v) { mie_ = v; }
     void set_mtvec(std::uint32_t v) { mtvec_ = v; }
+    void set_mhartid(std::uint32_t v) { mhartid_ = v; }
 
     // Counters (very minimal)
     void increment_cycle(std::uint64_t delta = 1);
@@ -55,6 +57,9 @@ private:
     std::uint32_t mtval_{0};
     std::uint32_t mie_{0};
     std::uint32_t mip_{0};
+    std::uint32_t pmpcfg0_{0};
+    std::uint32_t pmpaddr0_{0};
+    std::uint32_t mhartid_{0};
 
     // Basic counters (lower 32; you can extend to 64-bit CSRs later)
     std::uint64_t mcycle_{0};
