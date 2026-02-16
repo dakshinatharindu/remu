@@ -270,6 +270,33 @@ bool execute_rv32i(const DecodedInsn& d, Cpu& cpu, remu::mem::Bus& bus) {
         case InsnKind::EBREAK:
             // For now: signal “stop” to the simulator.
             return false;
+        
+        case InsnKind::MRET: {
+            constexpr std::uint32_t MSTATUS_MIE   = 1u << 3;
+            constexpr std::uint32_t MSTATUS_MPIE  = 1u << 7;
+            constexpr std::uint32_t MSTATUS_MPP_MASK = 3u << 11;
+
+            std::uint32_t ms = cpu.csr.mstatus();
+
+            // Extract MPP
+            std::uint32_t mpp = (ms & MSTATUS_MPP_MASK) >> 11;
+
+            // MIE <- MPIE
+            if (ms & MSTATUS_MPIE) ms |= MSTATUS_MIE;
+            else                   ms &= ~MSTATUS_MIE;
+
+            // MPIE <- 1
+            ms |= MSTATUS_MPIE;
+
+            // MPP <- 0 (U-mode) after return
+            ms &= ~MSTATUS_MPP_MASK;
+
+            cpu.csr.write(0x300, ms); // or set_mstatus
+            cpu.priv = static_cast<remu::cpu::PrivMode>(mpp);
+
+            cpu.pc = cpu.csr.mepc();
+            return true;
+        }
 
         default:
             return false;

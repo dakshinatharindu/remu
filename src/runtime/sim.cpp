@@ -16,8 +16,58 @@ bool Sim::fetch32_(std::uint32_t addr, std::uint32_t& out) {
     return machine_.bus().read32(addr, out);
 }
 
+namespace {
+constexpr std::uint32_t MSTATUS_MIE   = 1u << 3;
+constexpr std::uint32_t MSTATUS_MPIE  = 1u << 7;
+constexpr std::uint32_t MSTATUS_MPP_MASK = 3u << 11;
+
+constexpr std::uint32_t MIE_MTIE = 1u << 7;
+constexpr std::uint32_t MIP_MTIP = 1u << 7;
+
+constexpr std::uint32_t MCAUSE_MTI = 0x80000007u; // interrupt + machine timer
+}
+
 bool Sim::step() {
     if (stop_reason_ != StopReason::None) return false;
+
+    const std::uint32_t mstatus = cpu_.csr.mstatus();
+    const std::uint32_t mie     = cpu_.csr.mie();
+    const std::uint32_t mip     = cpu_.csr.mip();
+
+    const bool take_mti =
+        (mstatus & MSTATUS_MIE) &&
+        (mie     & MIE_MTIE) &&
+        (mip     & MIP_MTIP);
+
+    if (take_mti) {
+        // Trap entry
+        cpu_.csr.set_mepc(cpu_.pc);
+        cpu_.csr.set_mcause(MCAUSE_MTI);
+        cpu_.csr.set_mtval(0);
+
+        // mstatus updates: MPIE <- MIE, MIE <- 0, MPP <- current priv
+        std::uint32_t new_ms = mstatus;
+        const std::uint32_t prev_mie = (new_ms & MSTATUS_MIE) ? 1u : 0u;
+
+        if (prev_mie) new_ms |= MSTATUS_MPIE;
+        else          new_ms &= ~MSTATUS_MPIE;
+
+        new_ms &= ~MSTATUS_MIE;
+
+        // Set MPP = current priv (you likely run in Machine already)
+        new_ms = (new_ms & ~MSTATUS_MPP_MASK) | (3u << 11); // Machine=3
+        cpu_.csr.write(0x300, new_ms); // or cpu_.csr.set_mstatus(new_ms) if you have it
+
+        cpu_.priv = remu::cpu::PrivMode::Machine;
+
+        // mtvec direct mode
+        cpu_.pc = cpu_.csr.mtvec() & ~0x3u;
+
+        // Still tick time forward
+        machine_.tick(1, cpu_);
+        cpu_.csr.increment_cycle(1);
+        return true;
+    }
 
     const std::uint32_t pc = cpu_.pc;
 

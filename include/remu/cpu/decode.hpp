@@ -53,6 +53,7 @@ enum class InsnKind : std::uint16_t {
     FENCE,
     ECALL,
     EBREAK,
+    MRET,
     CSRRW,
     CSRRS,
     CSRRC,
