@@ -196,6 +196,8 @@ DecodedInsn decode_rv32(std::uint32_t insn) {
                 if (imm12 == 0x000) d.kind = InsnKind::ECALL;
                 else if (imm12 == 0x001) d.kind = InsnKind::EBREAK;
                 else if (imm12 == 0x302) d.kind = InsnKind::MRET;
+                else if (imm12 == 0x102) d.kind = InsnKind::SRET;
+                else if (imm12 == 0x105) d.kind = InsnKind::WFI;
                 return d;
             }
 

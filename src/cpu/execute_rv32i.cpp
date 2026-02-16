@@ -298,6 +298,30 @@ bool execute_rv32i(const DecodedInsn& d, Cpu& cpu, remu::mem::Bus& bus) {
             return true;
         }
 
+        case InsnKind::SRET: {
+            // sstatus bits live in mstatus (view)
+            constexpr std::uint32_t MSTATUS_SIE   = 1u << 1;
+            constexpr std::uint32_t MSTATUS_SPIE  = 1u << 5;
+            constexpr std::uint32_t MSTATUS_SPP   = 1u << 8;
+
+            std::uint32_t ms = cpu.csr.mstatus();
+
+            const bool spp = (ms & MSTATUS_SPP) != 0; // 0=return to U, 1=return to S
+
+            // SIE <- SPIE
+            if (ms & MSTATUS_SPIE) ms |= MSTATUS_SIE;
+            else                   ms &= ~MSTATUS_SIE;
+
+            // SPIE <- 1, SPP <- 0
+            ms |= MSTATUS_SPIE;
+            ms &= ~MSTATUS_SPP;
+
+            cpu.csr.write(0x300, ms);
+            cpu.priv = spp ? remu::cpu::PrivMode::Supervisor : remu::cpu::PrivMode::User;
+            cpu.pc = cpu.csr.sepc();
+            return true;
+        }
+
         default:
             return false;
     }

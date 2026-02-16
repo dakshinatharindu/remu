@@ -54,6 +54,8 @@ enum class InsnKind : std::uint16_t {
     ECALL,
     EBREAK,
     MRET,
+    SRET,
+    WFI,
     CSRRW,
     CSRRS,
     CSRRC,

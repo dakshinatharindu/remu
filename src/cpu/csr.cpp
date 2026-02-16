@@ -20,9 +20,25 @@ constexpr std::uint16_t CSR_MVENDORID= 0xF11;
 constexpr std::uint16_t CSR_MARCHID  = 0xF12;
 constexpr std::uint16_t CSR_MIMPID   = 0xF13;
 
+// Supervisor CSRs
+constexpr std::uint16_t CSR_SSTATUS = 0x100;
+constexpr std::uint16_t CSR_SIE     = 0x104;
+constexpr std::uint16_t CSR_STVEC   = 0x105;
+constexpr std::uint16_t CSR_SEPC    = 0x141;
+constexpr std::uint16_t CSR_SCAUSE  = 0x142;
+constexpr std::uint16_t CSR_STVAL   = 0x143;
+constexpr std::uint16_t CSR_SIP     = 0x144;
+
+constexpr std::uint16_t CSR_MEDELEG = 0x302;
+constexpr std::uint16_t CSR_MIDELEG = 0x303;
 
 constexpr std::uint16_t CSR_MCYCLE   = 0xB00;
 constexpr std::uint16_t CSR_MINSTRET = 0xB02;
+
+constexpr std::uint32_t SSTATUS_MASK = (1u<<1) | (1u<<5) | (1u<<8);
+constexpr std::uint32_t SIE_MASK     = (1u<<1) | (1u<<5) | (1u<<9);
+constexpr std::uint32_t SIP_MASK     = (1u<<1) | (1u<<5) | (1u<<9);
+
 
 // For RV32, cycle/minstret low halves are enough to start.
 // (Linux might read time via CLINT rather than cycle; still useful.)
@@ -50,6 +66,13 @@ void CsrFile::reset() {
     mvendorid_= 0;
     marchid_  = 0;
     mimpid_   = 0;
+
+    stvec_    = 0;
+    sepc_     = 0;
+    scause_   = 0;
+    stval_    = 0;
+    medeleg_  = 0;
+    mideleg_  = 0;
 }
 
 std::uint32_t CsrFile::build_misa_rv32ima_() {
@@ -91,6 +114,18 @@ bool CsrFile::read(std::uint16_t csr_addr, std::uint32_t& out) const {
         case CSR_MIMPID:   out = mimpid_;  return true;
         case CSR_MCYCLE:   out = static_cast<std::uint32_t>(mcycle_ & 0xFFFF'FFFFull); return true;
         case CSR_MINSTRET: out = static_cast<std::uint32_t>(minstret_ & 0xFFFF'FFFFull); return true;
+
+        case CSR_SSTATUS: out = (mstatus_ & SSTATUS_MASK); return true;
+        case CSR_SIE:     out = (mie_ & SIE_MASK);         return true;
+        case CSR_SIP:     out = (mip_ & SIP_MASK);         return true;
+
+        case CSR_STVEC:   out = stvec_;   return true;
+        case CSR_SEPC:    out = sepc_;    return true;
+        case CSR_SCAUSE:  out = scause_;  return true;
+        case CSR_STVAL:   out = stval_;   return true;
+
+        case CSR_MEDELEG: out = medeleg_; return true;
+        case CSR_MIDELEG: out = mideleg_; return true;
 
         default:
             return false; // unimplemented CSR for now
@@ -170,6 +205,29 @@ bool CsrFile::write(std::uint16_t csr_addr, std::uint32_t value) {
         case CSR_MINSTRET:
             minstret_ = (minstret_ & 0xFFFF'FFFF'0000'0000ull) | value;
             return true;
+        
+        case CSR_SSTATUS:
+            // Only allow supervisor bits to change
+            mstatus_ = (mstatus_ & ~SSTATUS_MASK) | (value & SSTATUS_MASK);
+            return true;
+
+        case CSR_SIE:
+            mie_ = (mie_ & ~SIE_MASK) | (value & SIE_MASK);
+            return true;
+
+        case CSR_SIP:
+            // In real hardware many SIP bits are read-only.
+            // For minimal model, allow writing only the masked bits.
+            mip_ = (mip_ & ~SIP_MASK) | (value & SIP_MASK);
+            return true;
+
+        case CSR_STVEC:  stvec_  = value; return true;
+        case CSR_SEPC:   sepc_   = value; return true;
+        case CSR_SCAUSE: scause_ = value; return true;
+        case CSR_STVAL:  stval_  = value; return true;
+
+        case CSR_MEDELEG: medeleg_ = value; return true;
+        case CSR_MIDELEG: mideleg_ = value; return true;
 
         default:
             return false;

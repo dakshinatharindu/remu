@@ -42,6 +42,19 @@ public:
     void set_mtvec(std::uint32_t v) { mtvec_ = v; }
     void set_mhartid(std::uint32_t v) { mhartid_ = v; }
 
+    std::uint32_t stvec() const { return stvec_; }
+    std::uint32_t sepc()  const { return sepc_; }
+    std::uint32_t scause() const { return scause_; }
+    std::uint32_t stval() const { return stval_; }
+    std::uint32_t medeleg() const { return medeleg_; }
+    std::uint32_t mideleg() const { return mideleg_; }
+
+    void set_sepc(std::uint32_t v) { sepc_ = v; }
+    void set_scause(std::uint32_t v) { scause_ = v; }
+    void set_stval(std::uint32_t v) { stval_ = v; }
+    void set_stvec(std::uint32_t v) { stvec_ = v; }
+
+
     // Counters (very minimal)
     void increment_cycle(std::uint64_t delta = 1);
     void increment_instret(std::uint64_t delta = 1);
@@ -63,6 +76,16 @@ private:
     std::uint32_t mvendorid_{0};
     std::uint32_t marchid_{0};
     std::uint32_t mimpid_{0};
+
+    // Supervisor trap CSRs
+    std::uint32_t stvec_{0};
+    std::uint32_t sepc_{0};
+    std::uint32_t scause_{0};
+    std::uint32_t stval_{0};
+
+    // Delegation
+    std::uint32_t medeleg_{0};
+    std::uint32_t mideleg_{0};
 
     // Basic counters (lower 32; you can extend to 64-bit CSRs later)
     std::uint64_t mcycle_{0};
