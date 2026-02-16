@@ -3,9 +3,10 @@
 #include <cstdint>
 #include <remu/mem/bus.hpp>
 #include <remu/mem/memory.hpp>
+#include <remu/cpu/cpu.hpp>
 
 #include <remu/devices/uart.hpp>
-// #include <remu/devices/clint.hpp>
+#include <remu/devices/clint.hpp>
 // #include <remu/devices/plic_stub.hpp>
 
 namespace remu::platform {
@@ -32,7 +33,7 @@ class VirtMachine {
     std::uint32_t dtb_base() const { return dtb_base_; }
 
     // Optional: tick devices (timers/interrupts). Call this from Sim loop.
-    void tick(std::uint64_t cycles);
+    void tick(std::uint64_t cycles, remu::cpu::Cpu& cpu);
 
    private:
     void map_devices_();
@@ -49,7 +50,7 @@ class VirtMachine {
 
     // Minimal compulsory devices for Linux bring-up
     remu::devices::UartNs16550 uart_;
-    // remu::devices::Clint clint_;
+    remu::devices::Clint clint_;
     // remu::devices::PlicStub plic_;
 };
 

@@ -59,7 +59,7 @@ bool Sim::step() {
     cpu_.csr.increment_cycle(1);
 
     // Tick platform devices (timer increments, etc.)
-    machine_.tick(1);
+    machine_.tick(1, cpu_);
 
     return true;
 }
