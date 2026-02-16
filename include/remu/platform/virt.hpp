@@ -22,9 +22,14 @@ class VirtMachine {
     remu::mem::Memory& ram() { return ram_; }
     const remu::mem::Memory& ram() const { return ram_; }
 
+    // Optional: direct DTB accessors (for loaders/debug)
+    remu::mem::Memory& dtb() { return dtb_; }
+    const remu::mem::Memory& dtb() const { return dtb_; }
+
     // Convenience accessors (optional)
     std::uint32_t ram_base() const { return ram_base_; }
     std::uint32_t ram_size() const { return mem_size_bytes_; }
+    std::uint32_t dtb_base() const { return dtb_base_; }
 
     // Optional: tick devices (timers/interrupts). Call this from Sim loop.
     void tick(std::uint64_t cycles);
@@ -33,11 +38,13 @@ class VirtMachine {
     void map_devices_();
 
    private:
-    std::uint32_t ram_base_ = 0x8000'0000;
-    std::uint32_t mem_size_bytes_ = 0;
+    std::uint32_t ram_base_;
+    std::uint32_t mem_size_bytes_;
+    std::uint32_t dtb_base_; // optional, for future use
 
     // Owned components
     remu::mem::Memory ram_;
+    remu::mem::Memory dtb_;
     remu::mem::Bus bus_;
 
     // Minimal compulsory devices for Linux bring-up

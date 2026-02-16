@@ -25,11 +25,24 @@ int run(const Arguments& args) {
     log_info("Kernel loaded into guest RAM at 0x8000000 (size: " +
              std::to_string(size.value()) + " bytes)");
 
+    auto dtb_size =
+        remu::loaders::load_file_into_guest(machine.dtb(), args.dtb_path);
+    if (!dtb_size) {
+        log_error("Failed to load DTB into guest RAM: " + dtb_size.error());
+        return 1;
+    }
+    log_info("DTB loaded into guest RAM at 0x" + std::to_string(machine.dtb_base()) +
+             " (size: " + std::to_string(dtb_size.value()) + " bytes)");
+
+    // Set up a0/a1 for Linux boot convention
+    cpu.set_boot_args(0, machine.dtb_base());
+
     remu::runtime::Sim sim(machine, cpu, args);
     const auto result = sim.run();
-    log_info("Simulation stopped after " + std::to_string(result.instructions) + " instructions");
-    log_info("Stop reason: " + std::to_string(static_cast<std::uint8_t>(result.reason)));
-
+    log_info("Simulation stopped after " + std::to_string(result.instructions) +
+             " instructions");
+    log_info("Stop reason: " +
+             std::to_string(static_cast<std::uint8_t>(result.reason)));
 
     return 0;
 }
