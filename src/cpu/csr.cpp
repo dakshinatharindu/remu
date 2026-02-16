@@ -16,6 +16,10 @@ constexpr std::uint16_t CSR_MIE      = 0x304;
 constexpr std::uint16_t CSR_PMPCFG0  = 0x3A0;
 constexpr std::uint16_t CSR_PMPADDR0 = 0x3B0;
 constexpr std::uint16_t CSR_MHARTID  = 0xF14;
+constexpr std::uint16_t CSR_MVENDORID= 0xF11;
+constexpr std::uint16_t CSR_MARCHID  = 0xF12;
+constexpr std::uint16_t CSR_MIMPID   = 0xF13;
+
 
 constexpr std::uint16_t CSR_MCYCLE   = 0xB00;
 constexpr std::uint16_t CSR_MINSTRET = 0xB02;
@@ -43,6 +47,9 @@ void CsrFile::reset() {
     mcycle_   = 0;
     minstret_ = 0;
     mhartid_  = 0;
+    mvendorid_= 0;
+    marchid_  = 0;
+    mimpid_   = 0;
 }
 
 std::uint32_t CsrFile::build_misa_rv32ima_() {
@@ -79,6 +86,9 @@ bool CsrFile::read(std::uint16_t csr_addr, std::uint32_t& out) const {
         case CSR_PMPCFG0:  out = pmpcfg0_; return true;
         case CSR_PMPADDR0: out = pmpaddr0_;return true;
         case CSR_MHARTID:  out = mhartid_; return true;
+        case CSR_MVENDORID:out = mvendorid_; return true;
+        case CSR_MARCHID:  out = marchid_; return true;
+        case CSR_MIMPID:   out = mimpid_;  return true;
         case CSR_MCYCLE:   out = static_cast<std::uint32_t>(mcycle_ & 0xFFFF'FFFFull); return true;
         case CSR_MINSTRET: out = static_cast<std::uint32_t>(minstret_ & 0xFFFF'FFFFull); return true;
 
@@ -139,6 +149,18 @@ bool CsrFile::write(std::uint16_t csr_addr, std::uint32_t value) {
         
         case CSR_MHARTID:
             mhartid_ = value;
+            return true;
+
+        case CSR_MVENDORID:
+            mvendorid_ = value;
+            return true;
+
+        case CSR_MARCHID:
+            marchid_ = value;
+            return true;
+
+        case CSR_MIMPID:
+            mimpid_ = value;
             return true;
 
         case CSR_MCYCLE:

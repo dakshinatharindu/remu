@@ -60,6 +60,9 @@ private:
     std::uint32_t pmpcfg0_{0};
     std::uint32_t pmpaddr0_{0};
     std::uint32_t mhartid_{0};
+    std::uint32_t mvendorid_{0};
+    std::uint32_t marchid_{0};
+    std::uint32_t mimpid_{0};
 
     // Basic counters (lower 32; you can extend to 64-bit CSRs later)
     std::uint64_t mcycle_{0};
