@@ -39,6 +39,25 @@ constexpr std::uint32_t SSTATUS_MASK = (1u<<1) | (1u<<5) | (1u<<8);
 constexpr std::uint32_t SIE_MASK     = (1u<<1) | (1u<<5) | (1u<<9);
 constexpr std::uint32_t SIP_MASK     = (1u<<1) | (1u<<5) | (1u<<9);
 
+// mie/mip bits
+constexpr uint32_t MIP_MSIP = 1u << 3;
+constexpr uint32_t MIP_MTIP = 1u << 7;
+constexpr uint32_t MIP_MEIP = 1u << 11;
+
+constexpr uint32_t MIE_MSIE = 1u << 3;
+constexpr uint32_t MIE_MTIE = 1u << 7;
+constexpr uint32_t MIE_MEIE = 1u << 11;
+
+// sie/sip bits
+constexpr uint32_t SIP_SSIP = 1u << 1;
+constexpr uint32_t SIP_STIP = 1u << 5;
+constexpr uint32_t SIP_SEIP = 1u << 9;
+
+constexpr uint32_t SIE_SSIE = 1u << 1;
+constexpr uint32_t SIE_STIE = 1u << 5;
+constexpr uint32_t SIE_SEIE = 1u << 9;
+
+
 
 // For RV32, cycle/minstret low halves are enough to start.
 // (Linux might read time via CLINT rather than cycle; still useful.)
@@ -95,6 +114,33 @@ std::uint32_t CsrFile::build_misa_rv32ima_() {
     return MXL_RV32 | ext;
 }
 
+uint32_t CsrFile::read_sie() const {
+    uint32_t out = 0;
+    if (mie_ & MIE_MSIE) out |= SIE_SSIE;
+    if (mie_ & MIE_MTIE) out |= SIE_STIE;
+    if (mie_ & MIE_MEIE) out |= SIE_SEIE;
+    return out;
+}
+
+void CsrFile::write_sie(uint32_t v) {
+    // clear the machine enable bits we control through sie
+    mie_ &= ~(MIE_MSIE | MIE_MTIE | MIE_MEIE);
+
+    if (v & SIE_SSIE) mie_ |= MIE_MSIE;
+    if (v & SIE_STIE) mie_ |= MIE_MTIE;
+    if (v & SIE_SEIE) mie_ |= MIE_MEIE;
+}
+
+uint32_t CsrFile::read_sip() const {
+    uint32_t out = 0;
+    if (mip_ & MIP_MSIP) out |= SIP_SSIP;
+    if (mip_ & MIP_MTIP) out |= SIP_STIP;
+    if (mip_ & MIP_MEIP) out |= SIP_SEIP;
+    return out;
+}
+
+
+
 bool CsrFile::read(std::uint16_t csr_addr, std::uint32_t& out) const {
     switch (csr_addr) {
         case CSR_MSTATUS:  out = mstatus_; return true;
@@ -116,8 +162,8 @@ bool CsrFile::read(std::uint16_t csr_addr, std::uint32_t& out) const {
         case CSR_MINSTRET: out = static_cast<std::uint32_t>(minstret_ & 0xFFFF'FFFFull); return true;
 
         case CSR_SSTATUS: out = (mstatus_ & SSTATUS_MASK); return true;
-        case CSR_SIE:     out = (mie_ & SIE_MASK);         return true;
-        case CSR_SIP:     out = (mip_ & SIP_MASK);         return true;
+        case CSR_SIE:     out = read_sie();                return true;
+        case CSR_SIP:     out = read_sip();                return true;
 
         case CSR_STVEC:   out = stvec_;   return true;
         case CSR_SEPC:    out = sepc_;    return true;

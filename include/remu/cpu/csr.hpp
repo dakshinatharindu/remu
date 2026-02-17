@@ -59,6 +59,10 @@ public:
     void increment_cycle(std::uint64_t delta = 1);
     void increment_instret(std::uint64_t delta = 1);
 
+    uint32_t read_sie() const;
+    void write_sie(uint32_t v);
+    uint32_t read_sip() const;
+
 private:
     // Core M-mode CSRs
     std::uint32_t mstatus_{0};
@@ -93,6 +97,7 @@ private:
 
 private:
     static std::uint32_t build_misa_rv32ima_();
+    
 };
 
 } // namespace remu::cpu
