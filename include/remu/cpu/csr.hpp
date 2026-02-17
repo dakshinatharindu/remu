@@ -34,6 +34,7 @@ public:
     std::uint32_t mscratch() const { return mscratch_; }
     std::uint32_t mhartid() const { return mhartid_; }
 
+    void set_mstatus(std::uint32_t v) { mstatus_ = v; }
     void set_mepc(std::uint32_t v) { mepc_ = v; }
     void set_mcause(std::uint32_t v) { mcause_ = v; }
     void set_mtval(std::uint32_t v) { mtval_ = v; }
