@@ -1,6 +1,7 @@
 #include <remu/cpu/decode.hpp>
 #include <remu/cpu/cpu.hpp>
 #include <remu/mem/bus.hpp>
+#include <remu/cpu/exception.hpp>
 
 #include <cstdint>
 
@@ -266,10 +267,20 @@ bool execute_rv32i(const DecodedInsn& d, Cpu& cpu, remu::mem::Bus& bus) {
             return true;
         }
 
-        case InsnKind::ECALL:
-        case InsnKind::EBREAK:
-            // For now: signal “stop” to the simulator.
-            return false;
+        case InsnKind::ECALL: {
+            std::uint32_t cause = remu::cpu::exc::EcallFromM;
+            if (cpu.priv == PrivMode::User) cause = remu::cpu::exc::EcallFromU;
+            else if (cpu.priv == PrivMode::Supervisor) cause = remu::cpu::exc::EcallFromS;
+
+            cpu.raise_exception(cause, 0);
+            // Do not change PC here; trap entry uses current PC as mepc
+            return true;
+        }
+
+        case InsnKind::EBREAK: {
+            cpu.raise_exception(remu::cpu::exc::Breakpoint, 0);
+            return true;
+        }
         
         case InsnKind::MRET: {
             constexpr std::uint32_t MSTATUS_MIE   = 1u << 3;

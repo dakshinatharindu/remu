@@ -4,6 +4,7 @@
 
 #include <remu/cpu/regs.hpp>
 #include <remu/cpu/csr.hpp>
+#include <remu/cpu/exception.hpp>
 
 namespace remu::cpu {
 
@@ -30,6 +31,23 @@ public:
 
     // Called by the simulator each instruction (simple accounting)
     void tick_counters(std::uint64_t cycles = 1);
+
+    // Pending synchronous exception (set by execute, consumed by trap)
+    bool exception_pending = false;
+    std::uint32_t exception_cause = 0;
+    std::uint32_t exception_tval  = 0;
+
+    void raise_exception(std::uint32_t cause, std::uint32_t tval = 0) {
+        exception_pending = true;
+        exception_cause = cause;
+        exception_tval = tval;
+    }
+
+    void clear_pending_exception() {
+        exception_pending = false;
+        exception_cause = 0;
+        exception_tval = 0;
+    }
 
 private:
     void clear_reservation_();

@@ -77,10 +77,10 @@ bool Sim::step() {
     // 4) Accounting / ticks
     instructions_ += 1;
     cpu_.csr.increment_instret(1);
-    cpu_.csr.increment_cycle(1);
-
-    // Tick platform devices (timer increments, etc.)
-    machine_.tick(1, cpu_);
+    
+    if (remu::cpu::take_pending_exception(cpu_)) {
+        return true;
+    }
 
     return true;
 }
