@@ -3,16 +3,17 @@
 #include <remu/cpu/decode.hpp>
 #include <remu/cpu/cpu.hpp>
 #include <remu/mem/bus.hpp>
+#include <remu/cpu/exec_result.hpp>
 
 namespace remu::cpu {
 
 // Execute subsets
-bool execute_rv32i(const DecodedInsn& d, Cpu& cpu, remu::mem::Bus& bus);
-bool execute_rv32m(const DecodedInsn& d, Cpu& cpu, remu::mem::Bus& bus);
-bool execute_rv32a(const DecodedInsn& d, Cpu& cpu, remu::mem::Bus& bus);
+ExecResult execute_rv32i(const DecodedInsn& d, Cpu& cpu, remu::mem::Bus& bus);
+ExecResult execute_rv32m(const DecodedInsn& d, Cpu& cpu, remu::mem::Bus& bus);
+ExecResult execute_rv32a(const DecodedInsn& d, Cpu& cpu, remu::mem::Bus& bus);
 
 // Convenience dispatcher (so Sim loop stays clean)
-inline bool execute(const DecodedInsn& d, Cpu& cpu, remu::mem::Bus& bus) {
+inline ExecResult execute(const DecodedInsn& d, Cpu& cpu, remu::mem::Bus& bus) {
     switch (d.kind) {
         // RV32M
         case InsnKind::MUL:

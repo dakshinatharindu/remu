@@ -191,6 +191,11 @@ DecodedInsn decode_rv32(std::uint32_t insn) {
             // ECALL/EBREAK if funct3 == 0
             if (funct3 == 0x0) {
                 const std::uint32_t imm12 = get_bits(insn, 31, 20);
+                if (imm12 == 0x105) {
+                    d.kind = InsnKind::WFI;
+                    d.fmt = InsnFormat::Other;
+                    return d;
+                }
                 d.fmt = InsnFormat::I;
                 d.imm = static_cast<std::int32_t>(imm12);
                 if (imm12 == 0x000) d.kind = InsnKind::ECALL;

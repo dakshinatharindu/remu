@@ -2,6 +2,7 @@
 #include <remu/cpu/cpu.hpp>
 #include <remu/mem/bus.hpp>
 #include <remu/cpu/exception.hpp>
+#include <remu/cpu/exec_result.hpp>
 
 #include <cstdint>
 
@@ -36,7 +37,7 @@ inline std::int32_t sext16(std::uint16_t v){ return static_cast<std::int32_t>(st
 
 } // namespace
 
-bool execute_rv32i(const DecodedInsn& d, Cpu& cpu, remu::mem::Bus& bus) {
+remu::cpu::ExecResult execute_rv32i(const DecodedInsn& d, Cpu& cpu, remu::mem::Bus& bus) {
     const std::uint32_t pc = cpu.pc;
     const std::uint32_t rs1v = cpu.regs.read(d.rs1);
     const std::uint32_t rs2v = cpu.regs.read(d.rs2);
@@ -48,181 +49,181 @@ bool execute_rv32i(const DecodedInsn& d, Cpu& cpu, remu::mem::Bus& bus) {
         case InsnKind::LUI:
             cpu.regs.write(d.rd, u32(d.imm));
             cpu.pc = next_pc;
-            return true;
+            return ExecResult::Ok;
 
         case InsnKind::AUIPC:
             cpu.regs.write(d.rd, pc + u32(d.imm));
             cpu.pc = next_pc;
-            return true;
+            return ExecResult::Ok;
 
         case InsnKind::JAL:
             cpu.regs.write(d.rd, pc + d.length);
             cpu.pc = pc + u32(d.imm);
-            return true;
+            return ExecResult::Ok;
 
         case InsnKind::JALR: {
             cpu.regs.write(d.rd, pc + d.length);
             std::uint32_t target = rs1v + u32(d.imm);
             target &= ~1u;
             cpu.pc = target;
-            return true;
+            return ExecResult::Ok;
         }
 
         // Branches
         case InsnKind::BEQ:
             cpu.pc = (rs1v == rs2v) ? (pc + u32(d.imm)) : next_pc;
-            return true;
+            return ExecResult::Ok;
         case InsnKind::BNE:
             cpu.pc = (rs1v != rs2v) ? (pc + u32(d.imm)) : next_pc;
-            return true;
+            return ExecResult::Ok;
         case InsnKind::BLT:
             cpu.pc = (static_cast<std::int32_t>(rs1v) < static_cast<std::int32_t>(rs2v)) ? (pc + u32(d.imm)) : next_pc;
-            return true;
+            return ExecResult::Ok;
         case InsnKind::BGE:
             cpu.pc = (static_cast<std::int32_t>(rs1v) >= static_cast<std::int32_t>(rs2v)) ? (pc + u32(d.imm)) : next_pc;
-            return true;
+            return ExecResult::Ok;
         case InsnKind::BLTU:
             cpu.pc = (rs1v < rs2v) ? (pc + u32(d.imm)) : next_pc;
-            return true;
+            return ExecResult::Ok;
         case InsnKind::BGEU:
             cpu.pc = (rs1v >= rs2v) ? (pc + u32(d.imm)) : next_pc;
-            return true;
+            return ExecResult::Ok;
 
         // Loads
         case InsnKind::LB: {
             std::uint8_t b{};
-            if (!load_u8(bus, rs1v + u32(d.imm), b)) return false;
+            if (!load_u8(bus, rs1v + u32(d.imm), b)) return ExecResult::Fault;
             cpu.regs.write(d.rd, static_cast<std::uint32_t>(sext8(b)));
             cpu.pc = next_pc;
-            return true;
+            return ExecResult::Ok;
         }
         case InsnKind::LBU: {
             std::uint8_t b{};
-            if (!load_u8(bus, rs1v + u32(d.imm), b)) return false;
+            if (!load_u8(bus, rs1v + u32(d.imm), b)) return ExecResult::Fault;
             cpu.regs.write(d.rd, b);
             cpu.pc = next_pc;
-            return true;
+            return ExecResult::Ok;
         }
         case InsnKind::LH: {
             std::uint16_t h{};
-            if (!load_u16(bus, rs1v + u32(d.imm), h)) return false;
+            if (!load_u16(bus, rs1v + u32(d.imm), h)) return ExecResult::Fault;
             cpu.regs.write(d.rd, static_cast<std::uint32_t>(sext16(h)));
             cpu.pc = next_pc;
-            return true;
+            return ExecResult::Ok;
         }
         case InsnKind::LHU: {
             std::uint16_t h{};
-            if (!load_u16(bus, rs1v + u32(d.imm), h)) return false;
+            if (!load_u16(bus, rs1v + u32(d.imm), h)) return ExecResult::Fault;
             cpu.regs.write(d.rd, h);
             cpu.pc = next_pc;
-            return true;
+            return ExecResult::Ok;
         }
         case InsnKind::LW: {
             std::uint32_t w{};
-            if (!load_u32(bus, rs1v + u32(d.imm), w)) return false;
+            if (!load_u32(bus, rs1v + u32(d.imm), w)) return ExecResult::Fault;
             cpu.regs.write(d.rd, w);
             cpu.pc = next_pc;
-            return true;
+            return ExecResult::Ok;
         }
 
         // Stores
         case InsnKind::SB:
-            if (!store_u8(bus, rs1v + u32(d.imm), static_cast<std::uint8_t>(rs2v & 0xFFu))) return false;
+            if (!store_u8(bus, rs1v + u32(d.imm), static_cast<std::uint8_t>(rs2v & 0xFFu))) return ExecResult::Fault;
             cpu.pc = next_pc;
-            return true;
+            return ExecResult::Ok;
         case InsnKind::SH:
-            if (!store_u16(bus, rs1v + u32(d.imm), static_cast<std::uint16_t>(rs2v & 0xFFFFu))) return false;
+            if (!store_u16(bus, rs1v + u32(d.imm), static_cast<std::uint16_t>(rs2v & 0xFFFFu))) return ExecResult::Fault;
             cpu.pc = next_pc;
-            return true;
+            return ExecResult::Ok;
         case InsnKind::SW:
-            if (!store_u32(bus, rs1v + u32(d.imm), rs2v)) return false;
+            if (!store_u32(bus, rs1v + u32(d.imm), rs2v)) return ExecResult::Fault;
             cpu.pc = next_pc;
-            return true;
+            return ExecResult::Ok;
 
         // OP-IMM
         case InsnKind::ADDI:
             cpu.regs.write(d.rd, rs1v + u32(d.imm));
             cpu.pc = next_pc;
-            return true;
+            return ExecResult::Ok;
         case InsnKind::SLTI:
             cpu.regs.write(d.rd, (static_cast<std::int32_t>(rs1v) < d.imm) ? 1u : 0u);
             cpu.pc = next_pc;
-            return true;
+            return ExecResult::Ok;
         case InsnKind::SLTIU:
             cpu.regs.write(d.rd, (rs1v < u32(d.imm)) ? 1u : 0u);
             cpu.pc = next_pc;
-            return true;
+            return ExecResult::Ok;
         case InsnKind::XORI:
             cpu.regs.write(d.rd, rs1v ^ u32(d.imm));
             cpu.pc = next_pc;
-            return true;
+            return ExecResult::Ok;
         case InsnKind::ORI:
             cpu.regs.write(d.rd, rs1v | u32(d.imm));
             cpu.pc = next_pc;
-            return true;
+            return ExecResult::Ok;
         case InsnKind::ANDI:
             cpu.regs.write(d.rd, rs1v & u32(d.imm));
             cpu.pc = next_pc;
-            return true;
+            return ExecResult::Ok;
         case InsnKind::SLLI:
             cpu.regs.write(d.rd, rs1v << (static_cast<std::uint32_t>(d.imm) & 31u));
             cpu.pc = next_pc;
-            return true;
+            return ExecResult::Ok;
         case InsnKind::SRLI:
             cpu.regs.write(d.rd, rs1v >> (static_cast<std::uint32_t>(d.imm) & 31u));
             cpu.pc = next_pc;
-            return true;
+            return ExecResult::Ok;
         case InsnKind::SRAI:
             cpu.regs.write(d.rd, static_cast<std::uint32_t>(static_cast<std::int32_t>(rs1v) >> (static_cast<std::uint32_t>(d.imm) & 31u)));
             cpu.pc = next_pc;
-            return true;
+            return ExecResult::Ok;
 
         // OP
         case InsnKind::ADD:
             cpu.regs.write(d.rd, rs1v + rs2v);
             cpu.pc = next_pc;
-            return true;
+            return ExecResult::Ok;
         case InsnKind::SUB:
             cpu.regs.write(d.rd, rs1v - rs2v);
             cpu.pc = next_pc;
-            return true;
+            return ExecResult::Ok;
         case InsnKind::SLL:
             cpu.regs.write(d.rd, rs1v << (rs2v & 31u));
             cpu.pc = next_pc;
-            return true;
+            return ExecResult::Ok;
         case InsnKind::SLT:
             cpu.regs.write(d.rd, (static_cast<std::int32_t>(rs1v) < static_cast<std::int32_t>(rs2v)) ? 1u : 0u);
             cpu.pc = next_pc;
-            return true;
+            return ExecResult::Ok;
         case InsnKind::SLTU:
             cpu.regs.write(d.rd, (rs1v < rs2v) ? 1u : 0u);
             cpu.pc = next_pc;
-            return true;
+            return ExecResult::Ok;
         case InsnKind::XOR:
             cpu.regs.write(d.rd, rs1v ^ rs2v);
             cpu.pc = next_pc;
-            return true;
+            return ExecResult::Ok;
         case InsnKind::SRL:
             cpu.regs.write(d.rd, rs1v >> (rs2v & 31u));
             cpu.pc = next_pc;
-            return true;
+            return ExecResult::Ok;
         case InsnKind::SRA:
             cpu.regs.write(d.rd, static_cast<std::uint32_t>(static_cast<std::int32_t>(rs1v) >> (rs2v & 31u)));
             cpu.pc = next_pc;
-            return true;
+            return ExecResult::Ok;
         case InsnKind::OR:
             cpu.regs.write(d.rd, rs1v | rs2v);
             cpu.pc = next_pc;
-            return true;
+            return ExecResult::Ok;
         case InsnKind::AND:
             cpu.regs.write(d.rd, rs1v & rs2v);
             cpu.pc = next_pc;
-            return true;
+            return ExecResult::Ok;
 
         case InsnKind::FENCE:
             // No-op for now
             cpu.pc = next_pc;
-            return true;
+            return ExecResult::Ok;
 
         // CSR ops (minimal: no privilege checks yet)
         case InsnKind::CSRRW:
@@ -233,7 +234,7 @@ bool execute_rv32i(const DecodedInsn& d, Cpu& cpu, remu::mem::Bus& bus) {
         case InsnKind::CSRRCI: {
             const std::uint16_t csr = static_cast<std::uint16_t>(d.imm & 0xFFF);
             std::uint32_t old = 0;
-            if (!cpu.csr.read(csr, old)) return false;
+            if (!cpu.csr.read(csr, old)) return ExecResult::Fault;
 
             std::uint32_t zimm_or_rs1 = 0;
             if (d.kind == InsnKind::CSRRWI || d.kind == InsnKind::CSRRSI || d.kind == InsnKind::CSRRCI) {
@@ -261,10 +262,10 @@ bool execute_rv32i(const DecodedInsn& d, Cpu& cpu, remu::mem::Bus& bus) {
             }
 
             if (d.rd != 0) cpu.regs.write(d.rd, old);
-            if (!cpu.csr.write(csr, newv)) return false;
+            if (!cpu.csr.write(csr, newv)) return ExecResult::Fault;
 
             cpu.pc = next_pc;
-            return true;
+            return ExecResult::Ok;
         }
 
         case InsnKind::ECALL: {
@@ -274,13 +275,20 @@ bool execute_rv32i(const DecodedInsn& d, Cpu& cpu, remu::mem::Bus& bus) {
 
             cpu.raise_exception(cause, 0);
             // Do not change PC here; trap entry uses current PC as mepc
-            return true;
+            return ExecResult::TrapRaised;
         }
 
         case InsnKind::EBREAK: {
             cpu.raise_exception(remu::cpu::exc::Breakpoint, 0);
-            return true;
+            return ExecResult::TrapRaised;
         }
+
+        case InsnKind::WFI:
+            // Architecturally: wait until interrupt becomes pending.
+            // In emulator we request the simulator to idle/tick.
+            // PC should advance as if instruction executed.
+            cpu.pc = cpu.pc + d.length;
+            return remu::cpu::ExecResult::Wfi;
         
         case InsnKind::MRET: {
             constexpr std::uint32_t MSTATUS_MIE   = 1u << 3;
@@ -306,11 +314,11 @@ bool execute_rv32i(const DecodedInsn& d, Cpu& cpu, remu::mem::Bus& bus) {
             cpu.priv = static_cast<remu::cpu::PrivMode>(mpp);
 
             cpu.pc = cpu.csr.mepc();
-            return true;
+            return ExecResult::Ok;
         }
 
         default:
-            return false;
+            return ExecResult::Fault;
     }
 }
 

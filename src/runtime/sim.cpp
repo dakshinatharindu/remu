@@ -5,6 +5,7 @@
 #include <remu/cpu/execute.hpp>
 #include <remu/mem/bus.hpp>
 #include <remu/cpu/trap.hpp>
+#include <remu/cpu/exec_result.hpp>
 
 namespace remu::runtime {
 
@@ -62,15 +63,9 @@ bool Sim::step() {
 #endif
 
     // 3) Execute
-    const bool ok = remu::cpu::execute(d, cpu_, machine_.bus());
-    if (!ok) {
-        // In our execute_rv32i(), we currently return false for ECALL/EBREAK too.
-        // You can refine later by adding trap handling.
-        if (d.kind == remu::cpu::InsnKind::ECALL || d.kind == remu::cpu::InsnKind::EBREAK) {
-            stop_reason_ = StopReason::EcallOrEbreak;
-        } else {
-            stop_reason_ = StopReason::ExecuteFailed;
-        }
+    auto ok = remu::cpu::execute(d, cpu_, machine_.bus());
+    if (ok == remu::cpu::ExecResult::Fault) {
+        stop_reason_ = StopReason::ExecuteFailed;
         return false;
     }
 
@@ -78,9 +73,35 @@ bool Sim::step() {
     instructions_ += 1;
     cpu_.csr.increment_instret(1);
     
-    if (remu::cpu::take_pending_exception(cpu_)) {
+    if (ok == remu::cpu::ExecResult::TrapRaised) {
+        remu::cpu::take_pending_exception(cpu_);
         return true;
     }
+
+    // if (ok == remu::cpu::ExecResult::Wfi) {
+    //     // If already pending, no need to idle.
+    //     // Otherwise tick until something becomes pending.
+    //     // Keep it bounded to avoid infinite loops if interrupts never come.
+    //     constexpr std::uint64_t kMaxIdleTicks = 10'000'000;
+
+    //     std::uint64_t idle = 0;
+    //     while (idle < kMaxIdleTicks) {
+    //         // Let time pass
+    //         machine_.tick(10000, cpu_);
+    //         cpu_.csr.increment_cycle(10000);
+
+    //         // If an interrupt is now pending+enabled and global MIE set,
+    //         // the next check will take it.
+    //         if (remu::cpu::check_and_take_interrupt(cpu_)) {
+    //             return true;
+    //         }
+    //         idle++;
+    //     }
+
+    //     // If we get here, nothing woke us up: treat as stop/fault (or just return true).
+    //     stop_reason_ = StopReason::InstructionLimit; // or new StopReason::WfiStuck
+    //     return false;
+    // }
 
     return true;
 }
