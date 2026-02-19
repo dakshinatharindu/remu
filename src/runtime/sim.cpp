@@ -18,17 +18,6 @@ bool Sim::fetch32_(std::uint32_t addr, std::uint32_t& out) {
     return machine_.bus().read32(addr, out);
 }
 
-namespace {
-constexpr std::uint32_t MSTATUS_MIE   = 1u << 3;
-constexpr std::uint32_t MSTATUS_MPIE  = 1u << 7;
-constexpr std::uint32_t MSTATUS_MPP_MASK = 3u << 11;
-
-constexpr std::uint32_t MIE_MTIE = 1u << 7;
-constexpr std::uint32_t MIP_MTIP = 1u << 7;
-
-constexpr std::uint32_t MCAUSE_MTI = 0x80000007u; // interrupt + machine timer
-}
-
 bool Sim::step() {
     if (stop_reason_ != StopReason::None) return false;
 
@@ -87,8 +76,8 @@ bool Sim::step() {
     //     std::uint64_t idle = 0;
     //     while (idle < kMaxIdleTicks) {
     //         // Let time pass
-    //         machine_.tick(10000, cpu_);
-    //         cpu_.csr.increment_cycle(10000);
+    //         machine_.tick(1, cpu_);
+    //         cpu_.csr.increment_cycle(1);
 
     //         // If an interrupt is now pending+enabled and global MIE set,
     //         // the next check will take it.

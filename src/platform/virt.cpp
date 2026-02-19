@@ -4,7 +4,7 @@ namespace remu::platform {
 
 namespace memmap {
 // QEMU virt-style base addresses
-static constexpr std::uint32_t CLINT_BASE = 0x0200'0000;
+static constexpr std::uint32_t CLINT_BASE = 0x11000000;
 static constexpr std::uint32_t CLINT_SIZE =
     0x0001'0000;  // 64 KiB window is enough for CLINT regs
 
@@ -35,7 +35,8 @@ VirtMachine::VirtMachine(std::uint32_t mem_size_bytes)
       bus_(),
       uart_(),
       clint_(),
-      plic_() {
+      plic_() 
+      {
     map_devices_();
 }
 
