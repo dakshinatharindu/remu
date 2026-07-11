@@ -19,7 +19,9 @@ constexpr std::uint32_t ENABLE_BASE   = 0x2000;
 // Claim/Complete: 0x200000 + 0x1000*context + 0x4
 constexpr std::uint32_t CONTEXT_BASE  = 0x200000;
 constexpr std::uint32_t CONTEXT_STRIDE= 0x1000;
-constexpr std::uint32_t CTX_M_HART0   = 1; // commonly used by QEMU virt
+// This machine has a single hart with only M-mode (no S-mode), so the PLIC
+// only exposes one context: context 0 = hart0 M-mode external interrupts.
+constexpr std::uint32_t CTX_M_HART0   = 0;
 
 constexpr std::uint32_t THRESHOLD_OFF = 0x0;
 constexpr std::uint32_t CLAIM_OFF     = 0x4;

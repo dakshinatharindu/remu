@@ -41,6 +41,9 @@ target_compile_features(remu_core PUBLIC cxx_std_20)
 remu_set_warnings(remu_core)
 remu_enable_sanitizers(remu_core)
 
+find_package(Threads REQUIRED)
+target_link_libraries(remu_core PUBLIC Threads::Threads)
+
 # Common compile defs
 target_compile_definitions(remu_core
   PUBLIC

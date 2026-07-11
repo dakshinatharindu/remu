@@ -15,6 +15,7 @@ static constexpr std::uint32_t PLIC_SIZE =
 static constexpr std::uint32_t UART_BASE = 0x1000'0000;
 static constexpr std::uint32_t UART_SIZE =
     0x0000'0100;  // 256 bytes window typical
+static constexpr std::uint32_t UART_IRQ = 10;  // must match the DTB's uart "interrupts" cell
 
 static constexpr std::uint32_t RAM_BASE = 0x8000'0000;
 static constexpr std::uint32_t DTB_SIZE = 2 * 1024 * 1024;  // 2 MiB for DTB
@@ -47,6 +48,12 @@ void VirtMachine::map_devices_() {
 
     // 2) UART (ns16550-like)
     bus_.map_mmio(memmap::UART_BASE, memmap::UART_SIZE, uart_);
+
+    // Wire the UART's RX-data-available interrupt into the PLIC.
+    uart_.set_irq_line([this](bool asserted) {
+        if (asserted) plic_.raise_irq(memmap::UART_IRQ);
+        else          plic_.clear_irq(memmap::UART_IRQ);
+    });
 
     // // 3) CLINT (mtime/mtimecmp/msip)
     bus_.map_mmio(memmap::CLINT_BASE, memmap::CLINT_SIZE, clint_);

@@ -1,5 +1,6 @@
 #include <remu/common/log.hpp>
 #include <remu/loaders/image_loader.hpp>
+#include <remu/platform/console_input.hpp>
 #include <remu/platform/virt.hpp>
 #include <remu/runtime/runner.hpp>
 #include <remu/runtime/sim.hpp>
@@ -36,6 +37,10 @@ int run(const Arguments& args) {
 
     // Set up a0/a1 for Linux boot convention
     cpu.set_boot_args(0, machine.dtb_base());
+
+    // Forward host stdin keystrokes into the guest UART so the console is
+    // actually interactive (raw terminal mode, one thread per process).
+    remu::platform::start_console_input(machine.uart());
 
     remu::runtime::Sim sim(machine, cpu, args);
     const auto result = sim.run();

@@ -41,7 +41,22 @@ void UartNs16550::inject_rx_byte(std::uint8_t byte) {
     std::lock_guard<std::mutex> lock(mu_);
     rbr_ = byte;
     lsr_ |= LSR_DR;
-    // Interrupts not modeled yet; iir_ stays "no interrupt".
+    update_irq_locked_();
+}
+
+void UartNs16550::update_irq_locked_() {
+    // "Received Data Available" interrupt: enabled via IER bit0, active
+    // while DR is set. This is the only RX interrupt source we model.
+    constexpr std::uint8_t IER_RDA = 1u << 0;
+    const bool rda_pending = (ier_ & IER_RDA) && (lsr_ & LSR_DR);
+
+    iir_ = rda_pending ? static_cast<std::uint8_t>(0x04) // ID=RDA, pending
+                       : static_cast<std::uint8_t>(0x01); // no interrupt pending
+
+    if (rda_pending != irq_asserted_) {
+        irq_asserted_ = rda_pending;
+        if (set_irq_) set_irq_(irq_asserted_);
+    }
 }
 
 bool UartNs16550::read(std::uint32_t addr, std::uint32_t width_bytes, std::uint32_t& out) {
@@ -83,6 +98,7 @@ bool UartNs16550::read8_(std::uint32_t addr, std::uint8_t& out) {
                 out = rbr_;
                 // reading RBR clears DR
                 lsr_ = static_cast<std::uint8_t>(lsr_ & ~LSR_DR);
+                update_irq_locked_();
             }
             return true;
 
@@ -141,7 +157,7 @@ bool UartNs16550::write8_(std::uint32_t addr, std::uint8_t val) {
                 dlm_ = val;
             } else {
                 ier_ = val;
-                // Interrupts not implemented; keep iir_ as "no pending".
+                update_irq_locked_();
             }
             return true;
 
@@ -151,6 +167,7 @@ bool UartNs16550::write8_(std::uint32_t addr, std::uint8_t val) {
             // If FIFOs are "cleared", clear DR bit (minimal behavior)
             if (val & 0x02u) { // clear RX FIFO
                 lsr_ = static_cast<std::uint8_t>(lsr_ & ~LSR_DR);
+                update_irq_locked_();
             }
             return true;
 

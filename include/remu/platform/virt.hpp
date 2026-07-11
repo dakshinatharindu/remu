@@ -27,6 +27,10 @@ class VirtMachine {
     remu::mem::Memory& dtb() { return dtb_; }
     const remu::mem::Memory& dtb() const { return dtb_; }
 
+    // UART accessor (for wiring host stdin to guest RX)
+    remu::devices::UartNs16550& uart() { return uart_; }
+    const remu::devices::UartNs16550& uart() const { return uart_; }
+
     // Convenience accessors (optional)
     std::uint32_t ram_base() const { return ram_base_; }
     std::uint32_t ram_size() const { return mem_size_bytes_; }

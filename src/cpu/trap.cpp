@@ -10,11 +10,17 @@ constexpr std::uint32_t MSTATUS_MPIE     = 1u << 7;
 constexpr std::uint32_t MSTATUS_MPP_MASK = 3u << 11;
 
 // mie/mip bits
+constexpr std::uint32_t MIE_MSIE = 1u << 3;
+constexpr std::uint32_t MIP_MSIP = 1u << 3;
 constexpr std::uint32_t MIE_MTIE = 1u << 7;
 constexpr std::uint32_t MIP_MTIP = 1u << 7;
+constexpr std::uint32_t MIE_MEIE = 1u << 11;
+constexpr std::uint32_t MIP_MEIP = 1u << 11;
 
-// mcause for machine timer interrupt: interrupt bit + code 7
-constexpr std::uint32_t MCAUSE_MTI = 0x80000007u;
+// mcause values (interrupt bit set + standard cause codes)
+constexpr std::uint32_t MCAUSE_MSI = 0x80000003u; // machine software interrupt
+constexpr std::uint32_t MCAUSE_MTI = 0x80000007u; // machine timer interrupt
+constexpr std::uint32_t MCAUSE_MEI = 0x8000000Bu; // machine external interrupt
 
 // Trap entry common
 inline void enter_trap_machine(Cpu& cpu, std::uint32_t mcause, std::uint32_t mtval) {
@@ -55,15 +61,23 @@ bool check_and_take_interrupt(Cpu& cpu) {
     const std::uint32_t mie = cpu.csr.mie();
     const std::uint32_t mip = cpu.csr.mip();
 
-    const bool take_mti =
-        (ms  & MSTATUS_MIE) &&
-        (mie & MIE_MTIE) &&
-        (mip & MIP_MTIP);
+    if ((ms & MSTATUS_MIE) == 0) return false;
 
-    if (!take_mti) return false;
+    // Standard M-mode interrupt priority: external > software > timer.
+    if ((mie & MIE_MEIE) && (mip & MIP_MEIP)) {
+        enter_trap_machine(cpu, MCAUSE_MEI, 0);
+        return true;
+    }
+    if ((mie & MIE_MSIE) && (mip & MIP_MSIP)) {
+        enter_trap_machine(cpu, MCAUSE_MSI, 0);
+        return true;
+    }
+    if ((mie & MIE_MTIE) && (mip & MIP_MTIP)) {
+        enter_trap_machine(cpu, MCAUSE_MTI, 0);
+        return true;
+    }
 
-    enter_trap_machine(cpu, MCAUSE_MTI, 0);
-    return true;
+    return false;
 }
 
 bool take_pending_exception(Cpu& cpu) {

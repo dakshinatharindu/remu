@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <functional>
 #include <mutex>
 
 #include <remu/mem/region.hpp> // for remu::mem::MmioDevice
@@ -8,8 +9,10 @@
 namespace remu::devices {
 
 // Minimal NS16550-compatible UART (enough for early printk)
-// - Only MMIO register behavior needed for basic TX.
-// - No real interrupts yet.
+// - MMIO register behavior for basic TX.
+// - RX interrupt (data-ready) modeled: raises/clears an external line via a
+//   host-supplied callback (typically wired to a PLIC) whenever IER's
+//   "Received Data Available" bit is enabled and DR changes.
 class UartNs16550 final : public remu::mem::MmioDevice {
 public:
     UartNs16550();
@@ -18,10 +21,17 @@ public:
     bool read (std::uint32_t addr, std::uint32_t width_bytes, std::uint32_t& out) override;
     bool write(std::uint32_t addr, std::uint32_t width_bytes, std::uint32_t  val) override;
 
-    // Optional: allow test/dev code to inject a received byte (sets DR bit)
+    // Allow test/dev code (or a host stdin reader) to inject a received byte
+    // (sets DR bit, and raises the RX interrupt line if enabled).
     void inject_rx_byte(std::uint8_t byte);
 
+    // Wire this UART's interrupt line to an external sink (e.g. a PLIC's
+    // raise_irq/clear_irq for a specific IRQ id). Called with `true` when the
+    // line should be asserted, `false` when it should be deasserted.
+    void set_irq_line(std::function<void(bool)> set_irq) { set_irq_ = std::move(set_irq); }
+
 private:
+    void update_irq_locked_();
     // 8-bit accessors (NS16550 registers are byte-based)
     bool read8_(std::uint32_t addr, std::uint8_t& out);
     bool write8_(std::uint32_t addr, std::uint8_t val);
@@ -55,6 +65,10 @@ private:
     // Divisor latch (when DLAB=1)
     std::uint8_t dll_{0};
     std::uint8_t dlm_{0};
+
+    // External interrupt line (e.g. wired to a PLIC).
+    std::function<void(bool)> set_irq_;
+    bool irq_asserted_{false};
 };
 
 } // namespace remu::devices
