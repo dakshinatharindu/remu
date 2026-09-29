@@ -27,10 +27,12 @@ static constexpr std::uint32_t MIP_MTIP =
 static constexpr std::uint32_t MIP_MEIP = (1u << 11); // Machine External Interrupt Pending
 }  // namespace memmap
 
-VirtMachine::VirtMachine(std::uint32_t mem_size_bytes)
+VirtMachine::VirtMachine(std::uint32_t mem_size_bytes,
+                         std::uint32_t insns_per_mtime_tick)
     : ram_base_(memmap::RAM_BASE),
       mem_size_bytes_(mem_size_bytes),
       dtb_base_(memmap::RAM_BASE + mem_size_bytes_),  // place DTB at end of RAM
+      insns_per_mtime_tick_(insns_per_mtime_tick ? insns_per_mtime_tick : 1),
       ram_(ram_base_, mem_size_bytes_),
       dtb_(dtb_base_, memmap::DTB_SIZE),  // 2 MiB DTB memory
       bus_(),
@@ -63,7 +65,14 @@ void VirtMachine::map_devices_() {
 }
 
 void VirtMachine::tick(std::uint64_t cycles, remu::cpu::Cpu& cpu) {
-    clint_.tick(cycles);
+    // Scale CPU cycles down to the 1 MHz timebase. Advancing mtime once per
+    // instruction models a 1 MIPS core, where the kernel's periodic tick
+    // (~2.6k instructions each at HZ=250) eats most of the CPU.
+    mtime_prescale_ += cycles;
+    if (mtime_prescale_ >= insns_per_mtime_tick_) {
+        clint_.tick(mtime_prescale_ / insns_per_mtime_tick_);
+        mtime_prescale_ %= insns_per_mtime_tick_;
+    }
 
     // Update CPU mip bits based on CLINT state
     std::uint32_t mip = cpu.csr.mip();
