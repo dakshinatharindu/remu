@@ -55,7 +55,7 @@ cmake --build build -j$(nproc)
 ## Running a Linux kernel
 
 ```bash
-./build/bin/remu -k <kernel_image> [-d <dtb>] [-m <mem_size>]
+./build/bin/remu -k <kernel_image> [-d <dtb>] [-m <mem_size>] [-t <n>]
 ```
 
 | Flag | Description |
@@ -63,6 +63,7 @@ cmake --build build -j$(nproc)
 | `-k <path>` | Path to the kernel image (required) |
 | `-d <path>` | Path to a DTB file (default: `resources/dtb/mini.dtb`) |
 | `-m <size>` | RAM size — bytes, or with suffix K/M/G (default: `128M`) |
+| `-t <n>` | Instructions retired per `mtime` tick (default: `10`). The DTB timebase is 1 MHz, so this is the modelled CPU speed in MIPS |
 
 ### Example
 
@@ -73,6 +74,8 @@ cmake --build build -j$(nproc)
 The kernel image should be a raw binary (e.g. `Image` for arm64-style flat image, or a raw ELF loaded at `0x80000000`). The DTB is placed just above the top of RAM and its address is passed to the kernel in register `a1`, following the Linux RISC-V boot convention.
 
 > `resources/dtb/mini.dtb` matches remu's actual (hardcoded) memory map — CLINT at `0x11000000`, PLIC at `0x0C000000`, UART at `0x10000000`, M-mode only. It's the only DTB in the repo and the CLI default; any DTB used with remu needs to match this address layout.
+
+> `-t` controls how guest time relates to executed instructions. With `-t 1` the guest sees a 1 MIPS CPU, and the kernel's periodic timer tick (HZ=250, roughly 2.6k instructions per tick on RV32) takes over 60% of all instructions, so boot timestamps are inflated by ~30x. The default of 10 keeps tick overhead around 6% and roughly matches wall-clock time on a typical host running a Release build.
 
 > Boot performance depends heavily on the CMake build type — the default is `Debug` (no optimizations), which can take minutes to reach a shell. Configure with `-DCMAKE_BUILD_TYPE=Release` for realistic boot times (a few seconds).
 

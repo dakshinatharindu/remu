@@ -13,7 +13,8 @@ namespace remu::platform {
 
 class VirtMachine {
    public:
-    explicit VirtMachine(std::uint32_t mem_size_bytes);
+    // insns_per_mtime_tick: how many retired instructions make one mtime tick.
+    VirtMachine(std::uint32_t mem_size_bytes, std::uint32_t insns_per_mtime_tick);
 
     // Access bus for CPU + loaders
     remu::mem::Bus& bus() { return bus_; }
@@ -46,6 +47,10 @@ class VirtMachine {
     std::uint32_t ram_base_;
     std::uint32_t mem_size_bytes_;
     std::uint32_t dtb_base_; // optional, for future use
+
+    // mtime prescaler: CPU cycles accumulate here until a full mtime tick.
+    std::uint32_t insns_per_mtime_tick_;
+    std::uint64_t mtime_prescale_ = 0;
 
     // Owned components
     remu::mem::Memory ram_;

@@ -11,7 +11,7 @@ int run(const Arguments& args) {
     using remu::common::log_info;
 
     remu::platform::VirtMachine machine(
-        static_cast<uint32_t>(args.mem_size_bytes));
+        static_cast<uint32_t>(args.mem_size_bytes), args.insns_per_mtime_tick);
     remu::cpu::Cpu cpu;
 
     // Set up initial CPU state (e.g. PC, a0/a1 for Linux boot convention)

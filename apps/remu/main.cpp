@@ -1,3 +1,4 @@
+#include <cerrno>
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
@@ -16,10 +17,14 @@ using remu::common::log_info;
 namespace {
 
 void print_usage(const char* prog) {
-    std::cout << "Usage: " << prog << " -k <kernel_image> [-m <mem_size>]\n"
+    std::cout << "Usage: " << prog
+              << " -k <kernel_image> [-d <dtb>] [-m <mem_size>] [-t <n>]\n"
               << "  -k <path>     Kernel image path (required)\n"
+              << "  -d <path>     DTB path. Default: resources/dtb/mini.dtb\n"
               << "  -m <size>     Memory size (e.g. 128M, 256M, 1G, or bytes). "
                  "Default: 128M\n"
+              << "  -t <n>        Instructions per 1 MHz mtime tick, i.e. "
+                 "modelled CPU speed in MIPS. Default: 1\n"
               << "  -h            Show help\n";
 }
 
@@ -101,6 +106,21 @@ bool parse_args(int argc, char** argv, remu::runtime::Arguments& out) {
                 return false;
             }
             out.dtb_path = argv[++i];
+        } else if (std::strcmp(arg, "-t") == 0) {
+            if (i + 1 >= argc) {
+                log_error("Missing value after -t");
+                return false;
+            }
+            const char* val = argv[++i];
+            char* end = nullptr;
+            errno = 0;
+            const unsigned long n = std::strtoul(val, &end, 10);
+            if (errno != 0 || end == val || *end != '\0' || n == 0 ||
+                n > 0xFFFF'FFFFul) {
+                log_error("Invalid value for -t (positive integer, e.g. 10)");
+                return false;
+            }
+            out.insns_per_mtime_tick = static_cast<std::uint32_t>(n);
         } else {
             log_error(std::string("Unknown argument: ") + arg);
             return false;
@@ -129,6 +149,8 @@ int main(int argc, char** argv) {
     log_info(std::string("Kernel: ") + args.kernel_path);
     log_info("Memory bytes: " + std::to_string(args.mem_size_bytes));
     log_info(std::string("DTB: ") + args.dtb_path);
+    log_info("Instructions per mtime tick: " +
+             std::to_string(args.insns_per_mtime_tick));
 
     remu::runtime::run(args);
 
