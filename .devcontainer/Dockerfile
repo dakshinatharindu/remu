@@ -8,4 +8,7 @@ RUN apt-get update \
     clang \
     clangd \
     device-tree-compiler \
+    file \
+    cpio \
+    bc \
     && rm -rf /var/lib/apt/lists/*
